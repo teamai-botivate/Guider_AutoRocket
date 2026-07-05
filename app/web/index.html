@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>AutoRocket Assistant Test Console</title>
+    <link rel="stylesheet" href="/static/app.css?v=3" />
+  </head>
+  <body>
+    <main class="shell">
+      <section class="panel login-panel" id="loginPanel">
+        <div class="brand">
+          <div class="mark">AR</div>
+          <div>
+            <h1>AutoRocket Assistant</h1>
+            <p>Development test console</p>
+          </div>
+        </div>
+
+        <div class="notice">
+          Pick one demo department user. Tokens are issued locally by this FastAPI service using
+          your <code>JWT_SECRET</code>.
+        </div>
+
+        <div class="user-grid" id="userGrid"></div>
+
+        <form class="login-form" id="loginForm">
+          <label>
+            Username
+            <input id="username" autocomplete="username" placeholder="purchase" required />
+          </label>
+          <label>
+            Password
+            <input
+              id="password"
+              autocomplete="current-password"
+              placeholder="purchase123"
+              type="password"
+              required
+            />
+          </label>
+          <button type="submit">Login and Start Testing</button>
+        </form>
+
+        <p class="error" id="loginError"></p>
+      </section>
+
+      <section class="panel chat-panel hidden" id="chatPanel">
+        <header class="chat-header">
+          <div>
+            <h2>Assistant Chat</h2>
+            <p id="sessionMeta"></p>
+          </div>
+          <div class="actions">
+            <a href="/docs" target="_blank" rel="noreferrer">API Docs</a>
+            <button id="logoutButton" type="button">Logout</button>
+          </div>
+        </header>
+
+        <div class="messages" id="messages"></div>
+
+        <form class="composer" id="chatForm">
+          <textarea
+            id="messageInput"
+            rows="2"
+            placeholder="Ask how to use AutoRocket..."
+            required
+          ></textarea>
+          <button type="submit" id="sendButton">Send</button>
+        </form>
+      </section>
+    </main>
+
+    <script src="/static/app.js?v=4"></script>
+  </body>
+</html>

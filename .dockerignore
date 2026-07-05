@@ -1,0 +1,11 @@
+.venv
+__pycache__
+*.pyc
+.env
+.git
+.gitignore
+*.md
+.pytest_cache
+tests
+data/chroma
+deploy.sh

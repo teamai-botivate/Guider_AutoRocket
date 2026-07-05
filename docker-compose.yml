@@ -1,0 +1,22 @@
+services:
+  ai-assistant:
+    build: .
+    container_name: autorocket-ai-assistant
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - "127.0.0.1:8001:8000"
+    volumes:
+      - ./knowledge_base:/app/knowledge_base:ro
+      - ./config:/app/config:ro
+      - chroma_data:/app/data/chroma
+    networks:
+      - botivate_network
+
+networks:
+  botivate_network:
+    external: true
+
+volumes:
+  chroma_data:
