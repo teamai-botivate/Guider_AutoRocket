@@ -1,4 +1,5 @@
 import json
+import logging
 
 from fastapi import APIRouter, Depends
 from fastapi.responses import StreamingResponse
@@ -9,6 +10,30 @@ from app.graph import compiled as compiled_module
 from app.schemas.chat import ChatRequest, ChatResponse, SourceRef
 
 router = APIRouter()
+logger = logging.getLogger("autorocket_ai_assistant.chat")
+
+
+def _error_frame(code: str, message: str) -> str:
+    """One SSE error frame. `code` is machine-readable; `message` is safe to show a user."""
+    return f"data: {json.dumps({'type': 'error', 'code': code, 'message': message})}\n\n"
+
+
+def _classify_failure(exc: Exception) -> tuple[str, str]:
+    """Map an unexpected exception to a (code, user-safe message). The raw text stays in the log."""
+    name = type(exc).__name__
+    text = str(exc).lower()
+    if name == "RateLimitError" or "rate limit" in text or "429" in text:
+        return "busy", "The assistant is busy right now. Please try again in a minute."
+    if name == "AuthenticationError" or "incorrect api key" in text or "invalid_api_key" in text:
+        return "no_key", "The OpenAI key for your company is not valid. Please contact your admin."
+    return "unavailable", "The assistant is not available right now. Please try again later."
+
+
+def _auth_failure(message: str) -> tuple[str, str]:
+    """Auth/tenant-key failures raised inside the graph, as (code, message)."""
+    if "openai key" in message.lower():
+        return "no_key", "The assistant is not set up for your company yet. Please contact your admin."
+    return "not_authenticated", "Your session has expired. Please log in again."
 
 
 @router.post("/chat", response_model=ChatResponse)
@@ -63,12 +88,15 @@ async def chat_stream(request: ChatRequest, bearer_token: str = Depends(get_bear
                 }
             )
         except Exception as exc:  # defensive: never let the stream die silently
-            yield f"data: {json.dumps({'type': 'error', 'message': str(exc)})}\n\n"
+            logger.exception("chat stream failed")  # full detail only in the server log
+            code, message = _classify_failure(exc)
+            yield _error_frame(code, message)
             yield f"data: {json.dumps({'type': 'done'})}\n\n"
             return
 
         if result.get("auth_error"):
-            yield f"data: {json.dumps({'type': 'error', 'message': result['auth_error']})}\n\n"
+            code, message = _auth_failure(result["auth_error"])
+            yield _error_frame(code, message)
             yield f"data: {json.dumps({'type': 'done'})}\n\n"
             return
 

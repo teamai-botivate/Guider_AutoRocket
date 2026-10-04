@@ -1,4 +1,5 @@
-from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.messages import AIMessage, BaseMessage, HumanMessage
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 
 from app.auth.jwt_verifier import decode_and_verify_jwt
 from app.auth.node_backend_client import collect_department_names, fetch_me
@@ -114,11 +115,12 @@ async def refuse_node(state: AssistantState) -> dict:
     return {"answer": REFUSAL_TEMPLATE.format(module_display=module_display), "sources": []}
 
 
-def _to_langchain_history(conversation_history) -> list[tuple[str, str]]:
-    messages = []
+def _to_langchain_history(conversation_history) -> list[BaseMessage]:
+    # Real message objects, NOT (role, text) tuples: ChatPromptTemplate treats tuple strings as
+    # templates, so a "{" or "}" in an earlier answer (JSON, code) would crash the whole request.
+    messages: list[BaseMessage] = []
     for turn in conversation_history:
-        role = "human" if turn.role == "user" else "ai"
-        messages.append((role, turn.content))
+        messages.append(HumanMessage(content=turn.content) if turn.role == "user" else AIMessage(content=turn.content))
     return messages
 
 
@@ -136,7 +138,9 @@ def make_generate_node():
         )
         llm = get_llm_for_tenant(state["tenant_api_key"])
         chain = prompt | llm
-        result = await chain.ainvoke({"context": context, "question": state["user_message"]})
+        result = await chain.ainvoke(
+            {"history": history_msgs, "context": context, "question": state["user_message"]}
+        )
         return {"answer": result.content, "sources": state["retrieved_docs"]}
 
     return generate_node
