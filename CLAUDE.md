@@ -171,3 +171,11 @@ refuse_node  OR  generate_node → generate_node builds a per-tenant ChatAnthrop
 | `FRONTEND_INTEGRATION_FOR_AUTOROCKET_DEV.md` | Original file paths and code for wiring up `ChatWidget.tsx` in `botivate_os_frontend` — the integration has since been implemented (see "How it connects") |
 | `SETUP.md` | Local setup from scratch |
 | `deploy.sh` | One-command build → ingest → up → health-check sequence used for every deploy/redeploy |
+
+## Follow-up messages
+
+`app/graph/nodes.py` has a follow-up step before retrieval: `followup_kind()` (keywords, one tiny LLM call when unsure) classifies the message as **transform** ("ab hindi me batao", "short me": answered from the previous assistant turn, no retrieval, never refused), **refine** ("uske baad kya karna hai?": rewritten into a standalone question that retrieval and the scope decision use; the answer step still gets the original message and the history) or **new** (unchanged). Empty history never rewrites; failures fall back to the original message. Tests: `tests/test_followup.py`.
+
+## Claude: thinking must be off
+
+Current Claude models think by default and the hidden thinking is counted inside `max_tokens` (here 1024), which cuts answers short or leaves them empty. `app/graph/llm.py` passes `thinking={"type": "disabled"}` for haiku and `{"type": "between_tools"}` for sonnet/opus (the API rejects the other value).

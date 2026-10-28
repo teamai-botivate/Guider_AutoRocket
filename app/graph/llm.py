@@ -9,6 +9,13 @@ def is_claude_key(api_key: str | None) -> bool:
     return bool(api_key) and api_key.strip().startswith(CLAUDE_KEY_PREFIX)
 
 
+def claude_thinking_off(model: str) -> dict:
+    """Current Claude models think by default and the hidden thinking is counted inside max_tokens (here 1024), so
+    answers (and the small follow-up calls) come back cut off or empty. Switch it off: haiku takes
+    {"type": "disabled"}, sonnet/opus take {"type": "between_tools"} (the API rejects the other one)."""
+    return {"type": "disabled"} if "haiku" in model.lower() else {"type": "between_tools"}
+
+
 def get_llm_for_tenant(api_key: str):
     """
     Build the chat model scoped to one tenant's own AI key: OpenAI, or Claude (Anthropic) when the key
@@ -27,6 +34,7 @@ def get_llm_for_tenant(api_key: str):
             # no temperature: current Claude models reject it (HTTP 400 "`temperature` is deprecated for this model")
             streaming=True,
             max_tokens=1024,
+            thinking=claude_thinking_off(settings.claude_chat_model),
         )
     return ChatOpenAI(
         model=settings.openai_chat_model,

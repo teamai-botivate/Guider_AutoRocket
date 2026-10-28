@@ -24,6 +24,10 @@ class AssistantState(TypedDict, total=False):
     allowed_modules: list[str]
     department_error: str | None
 
+    # ---- populated by followup_node ----
+    followup_kind: str  # "transform" | "refine" | "new"
+    search_query: str  # what retrieval + scope decision use (rewritten question for "refine", else user_message)
+
     # ---- populated by retrieve_node / scope_decision_node ----
     requested_module_hint: str | None
     in_scope: bool
